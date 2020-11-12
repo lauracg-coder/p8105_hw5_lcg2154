@@ -1,0 +1,60 @@
+---
+title: "Homework 5 Solutions"
+author: Laura Gomez
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(p8105.datasets)
+library(dplyr)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = 0.6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# Problem 2
+```{r}
+data_1 = read_csv("1da_data/con_01.csv")
+#go over iteration
+```
+
+```{r, error = TRUE}
+path_df = 
+  tibble(
+  path = list.files("1da_data"),
+  ) %>%
+  mutate(
+  path = str_c("1da_data/", path),
+  data = map(path,read_csv)) %>%
+  unnest() %>%
+  separate(col = path, into = c("path_1","path_2"), sep = 9,  remove = T) %>%
+  separate(col = path_2, into = c("path_3","path_4"), sep = 4,  remove = T) %>%
+  separate(path_4, c("subject_ID","csv")) %>%
+  select(-path_1,-csv) %>%
+  rename(control_arm = path_3)
+
+#Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+
+#interaction.plot()
+  
+#read_csv(path_df$path[[1]])
+  
+
+```
+
