@@ -29,6 +29,87 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
+
+# Problem 1
+
+Read in the data.
+
+```{r}
+#homicide_df = 
+  #read_csv("homicide_data/homicide-data.csv") %>% 
+  #mutate(
+    #city_state = str_c(city, state, sep = "_"),
+    #resolved = case_when(
+      #disposition == "Closed without arrest" ~ "unsolved",
+      #disposition == "Open/No arrest"        ~ "unsolved",
+      #disposition == "Closed by arrest"      ~ "solved",)) %>% 
+  #select(city_state, resolved) %>% 
+  #filter(city_state != "Tulsa_AL")
+```
+
+Let's look at this a bit
+
+```{r}
+#aggregate_df = 
+  #homicide_df %>% 
+  #group_by(city_state) %>% 
+  #summarize(
+    #hom_total = n(),
+    #hom_unsolved = sum(resolved == "unsolved"))
+```
+
+Can I do a prop test for a single city?
+
+```{r}
+#prop.test(
+  #aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved), 
+  #aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
+  #broom::tidy()
+```
+
+Try to iterate ........
+
+```{r}
+#results_df = 
+  #aggregate_df %>% 
+  #mutate(
+    #prop_tests = map2(.x = hom_unsolved, .y = hom_total, ~prop.test(x = .x, n = .y)),
+    #tidy_tests = map(.x = prop_tests, ~broom::tidy(.x))) %>% 
+  #select(-prop_tests) %>% 
+  #unnest(tidy_tests) %>% 
+  #select(city_state, estimate, conf.low, conf.high)
+```
+
+```{r}
+#results_df %>% 
+  #mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  #ggplot(aes(x = city_state, y = estimate)) +
+  #geom_point() + 
+  #geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  #theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+```{r, error = TRUE}
+#city_prop_test = function(df) {
+  
+  #n_unsovled ...
+  #n_total ... 
+  
+  #prop.test(.....)}
+#homicide_df = 
+  #read_csv("data/homicide-data.csv") %>% 
+  #mutate(
+    #city_state = str_c(city, state, sep = "_"),
+    #resolved = case_when(
+      #disposition == "Closed without arrest" ~ "unsolved",
+      #disposition == "Open/No arrest"        ~ "unsolved",
+      #disposition == "Closed by arrest"      ~ "solved",)) %>% 
+ # select(city_state, resolved) %>% 
+  #filter(city_state != "Tulsa_AL") %>% 
+  #nest(data = resolved)
+```
+
+
 # Problem 2
 
 Import and tidy the following data set:
@@ -99,8 +180,11 @@ exp_plot
 
 grid.arrange(control_plot, exp_plot, ncol = 2)
 ```
-The major differences between the control and experimental groups are the observational values for the control group trend downward overall following week 6 compared to the values for the experimental group trend upward overall for the subjects. The overall range of values for the control group are 
-## Problem 3
+
+The major differences between the control and experimental groups are the observational values for the control group trend downward overall following week 6 compared to the values for the experimental group trend upward overall for the subjects. The overall range of values in the Y-axis for the control group are from (-2,5) and the experimental group are from (-1,8). The mean value for the observational values during week 8 are higher in the control group compared to the experimental group. 
+
+# Problem 3
+
 ```{r}
 sim_ttest = function(n,  mu = 0, sigma = 5){
   
@@ -121,21 +205,61 @@ sim_ttest = function(n,  mu = 0, sigma = 5){
 
 output = vector("list",100)
 
-#map(.x = (0:6), ~rerun(5000, sim_ttest(mu =.x)))
+map(.x = (0:6), ~rerun(500, sim_ttest(mu =.x)))
 
-#sim_results = bind_rows(output)
+sim_results = bind_rows(output)
 
-#data = tibble( mu = c(0:6)) %>%
-                 #mutate(output_lists = map(.x = mu, ~rerun(5000, sim_ttest(mu = .x))),
-                        #estimate_dfs = map(output_lists, bind_rows)) %>%
-  #select(-output_lists) %>%
-  #unnest(estimate_dfs)
+data = tibble( mu = c(0:6)) %>%
+                 mutate(output_lists = map(.x = mu, ~rerun(500, sim_ttest(mu = .x))),
+                        estimate_dfs = map(output_lists, bind_rows)) %>%
+  select(-output_lists) %>%
+  unnest(estimate_dfs)
+```
 
-###μ=0  using α=0.05. Hint: to obtain the estimate and p-value, use broom::tidy to clean the output of t.test.
-  
+Create a plot to show the proportion of times the null was rejected
+```{r}
 ##Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
-#Make a plot showing the average estimate of μ̂  on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ̂  only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ̂  across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
 
+proportion_plot = filter( data, pvalue <= 0.05) %>%
+  ggplot(aes(x = pvalue, y = mean)) + 
+  geom_point() + geom_line() + 
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Proportion of times the null was rejected vs. true mean value ",
+    x = "P-value",
+    y = "True Mean Value")
 
 ```
+The power of the test was at a significance level of 5%. The smaller the p-value, the stronger the evidence that you should reject the null hypothesis. A p-value less than 0.05 is statistically significant to reject the null so the values for the p-values are chosen if the are less than 0.05. THe power of the test has led to a small error between the P-value and the true mean value. 
+
+
+```{r}
+#Make a plot showing the average estimate of u on the y axis and the true value of μ on the x axis.
+mean_comparison_plot = data %>%
+  ggplot(aes(x = mu , y = mean)) + 
+  geom_point() + geom_line() + 
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Proportion of times the null was rejected vs. true mean value ",
+    x = "true value of mean",
+    y = "average estimate of sample mean")
+mean_comparison_plot
+
+#Make a plot for the average estimate of μ̂  only in samples for which the null was rejected on the y axis and the true value of μ on the x axis.
+
+comparison_rejected_null_df = filter(data, pvalue <= 0.05) %>%
+  ggplot(aes(x = mu , y = mean)) + 
+  geom_point() + geom_line() + 
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Proportion of times the null was rejected vs. true mean value ",
+    x = "true value of mean on the x axis",
+    y = "average estimate n")
+mean_comparison_plot
+  
+```
+The sample average, μ̂  across tests for which the null is rejected is not approximately equal to the true value of μ because the range between the estimation for the average sample mean has a large spread when attempting to predict a true value of mean, as seen from the **mean_comparison_plot** above. 
+
+
+
 
